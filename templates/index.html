@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grocery Product Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f9;
+        }
+        h1, h2, h3 {
+            text-align: center;
+            color: #333;
+        }
+        form {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px auto;
+            max-width: 400px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        input, button {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0 15px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        #product-section, #invoice-section {
+            max-width: 800px;
+            margin: 20px auto;
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+        li {
+            padding: 8px;
+            background-color: #e9ecef;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        li button {
+            width: auto;
+            margin-left: 5px;
+            padding: 4px 8px;
+            background-color: #007bff;
+        }
+        li button.delete {
+            background-color: #dc3545;
+        }
+        li button:hover {
+            opacity: 0.9;
+        }
+        #auth-section {
+            text-align: center;
+        }
+        #logout-btn {
+            display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #ffc107;
+            color: #333;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        #delete-all-btn {
+            margin-top: 10px;
+            background-color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <h1>Grocery Product Management</h1>
+
+    <!-- Logout Button -->
+    <button id="logout-btn">Logout</button>
+
+    <!-- Authentication -->
+    <div id="auth-section">
+        <h2>Sign In / Sign Up</h2>
+        <form id="signup-form">
+            <h3>Sign Up</h3>
+            <input type="text" id="signup-username" placeholder="Username" required>
+            <input type="password" id="signup-password" placeholder="Password" required>
+            <button type="submit">Sign Up</button>
+        </form>
+
+        <form id="signin-form">
+            <h3>Sign In</h3>
+            <input type="text" id="signin-username" placeholder="Username" required>
+            <input type="password" id="signin-password" placeholder="Password" required>
+            <button type="submit">Sign In</button>
+        </form>
+    </div>
+
+    <!-- Product Management -->
+    <div id="product-section" style="display:none;">
+        <h2>Manage Products</h2>
+        <form id="add-product-form">
+            <input type="text" id="product-name" placeholder="Product Name" required>
+            <input type="number" id="quantity" placeholder="Quantity" required>
+            <input type="number" step="0.01" id="price" placeholder="Price" required>
+            <button type="submit">Add Product</button>
+        </form>
+
+        <h3>Current Products</h3>
+        <ul id="product-list"></ul>
+        <h3>Total Price: <span id="total-price">0</span></h3>
+
+        <button id="delete-all-btn">Delete All Products</button>
+        <button onclick="printInvoice()">Print Invoice</button>
+    </div>
+
+    <!-- Invoice Section -->
+    <div id="invoice-section" style="display:none;">
+        <h3>Invoice</h3>
+        <ul id="invoice-list"></ul>
+    </div>
+
+    <script>
+        const authSection = document.getElementById('auth-section');
+        const productSection = document.getElementById('product-section');
+        const invoiceSection = document.getElementById('invoice-section');
+        const logoutBtn = document.getElementById('logout-btn');
+        const deleteAllBtn = document.getElementById('delete-all-btn');
+
+        async function checkLogin() {
+            const response = await fetch('/');
+            const text = await response.text();
+            if (text.includes('username')) {
+                authSection.style.display = 'none';
+                productSection.style.display = 'block';
+                invoiceSection.style.display = 'block';
+                logoutBtn.style.display = 'block';
+                fetchProducts();
+            }
+        }
+
+        checkLogin();
+
+        // Logout
+        logoutBtn.addEventListener('click', async () => {
+            await fetch('/logout');
+            authSection.style.display = 'block';
+            productSection.style.display = 'none';
+            invoiceSection.style.display = 'none';
+            logoutBtn.style.display = 'none';
+        });
+
+        // Delete All Products
+        deleteAllBtn.addEventListener('click', async () => {
+            if (confirm('Are you sure you want to delete all products?')) {
+                await fetch('/delete_all_products', { method: 'POST' });
+                fetchProducts();
+            }
+        });
+
+        // Sign Up
+        document.getElementById('signup-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('signup-username').value;
+            const password = document.getElementById('signup-password').value;
+            const response = await fetch('/signup', {
+                method: 'POST',
+                body: new URLSearchParams({ username, password })
+            });
+            if (response.redirected) window.location.href = response.url;
+        });
+
+        // Sign In
+        document.getElementById('signin-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const username = document.getElementById('signin-username').value;
+            const password = document.getElementById('signin-password').value;
+            const response = await fetch('/signin', {
+                method: 'POST',
+                body: new URLSearchParams({ username, password })
+            });
+            if (response.redirected) window.location.href = response.url;
+        });
+
+        // Add Product with input clearing
+        document.getElementById('add-product-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nameInput = document.getElementById('product-name');
+            const quantityInput = document.getElementById('quantity');
+            const priceInput = document.getElementById('price');
+
+            const name = nameInput.value;
+            const quantity = quantityInput.value;
+            const price = priceInput.value;
+
+            await fetch('/add_product', {
+                method: 'POST',
+                body: new URLSearchParams({ name, quantity, price })
+            });
+
+            // Clear input fields
+            nameInput.value = '';
+            quantityInput.value = '';
+            priceInput.value = '';
+
+            fetchProducts();
+        });
+
+        async function fetchProducts() {
+            const response = await fetch('/get_products');
+            const products = await response.json();
+            const productList = document.getElementById('product-list');
+            const totalPriceElement = document.getElementById('total-price');
+            productList.innerHTML = '';
+            let totalPrice = 0;
+
+            products.forEach(product => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    ${product.name} - Qty: ${product.quantity}, Price: ${product.price.toFixed(2)}
+                    <span>
+                        <button onclick="editProduct('${product._id}', '${product.name}', ${product.quantity}, ${product.price})">Edit</button>
+                        <button class="delete" onclick="deleteProduct('${product._id}')">Delete</button>
+                    </span>`;
+                productList.appendChild(li);
+                totalPrice += product.quantity * product.price;
+            });
+            totalPriceElement.textContent = totalPrice.toFixed(2);
+        }
+
+        async function editProduct(id, name, quantity, price) {
+            const newName = prompt('Enter new product name:', name);
+            const newQuantity = prompt('Enter new quantity:', quantity);
+            const newPrice = prompt('Enter new price:', price);
+            await fetch(`/edit_product/${id}`, {
+                method: 'POST',
+                body: JSON.stringify({ name: newName, quantity: newQuantity, price: newPrice }),
+                headers: { 'Content-Type': 'application/json' }
+            });
+            fetchProducts();
+        }
+
+        async function deleteProduct(id) {
+            await fetch(`/delete_product/${id}`, { method: 'POST' });
+            fetchProducts();
+        }
+
+        async function printInvoice() {
+            const date = prompt('Enter date (YYYY-MM-DD):');
+            const response = await fetch(`/get_invoice/${date}`);
+            const invoiceData = await response.json();
+            const invoiceList = document.getElementById('invoice-list');
+            invoiceList.innerHTML = '';
+            let totalAmount = 0;
+
+            invoiceData.forEach(item => {
+                const li = document.createElement('li');
+                li.textContent = `${item.name} - Qty: ${item.quantity}, Price: ${item.price}, Total: ${(item.quantity * item.price).toFixed(2)}`;
+                invoiceList.appendChild(li);
+                totalAmount += item.quantity * item.price;
+            });
+
+            const totalLi = document.createElement('li');
+            totalLi.textContent = `Total Invoice Amount: ${totalAmount.toFixed(2)}`;
+            invoiceList.appendChild(totalLi);
+            window.print();
+        }
+    </script>
+</body>
+</html>
