@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grocery Product Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet" />
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -95,10 +96,9 @@
 <body>
     <h1>Grocery Product Management</h1>
 
-    <!-- Logout Button -->
     <button id="logout-btn">Logout</button>
 
-    <!-- Authentication -->
+    <!-- Authentication Section -->
     <div id="auth-section">
         <h2>Sign In / Sign Up</h2>
         <form id="signup-form">
@@ -116,7 +116,7 @@
         </form>
     </div>
 
-    <!-- Product Management -->
+    <!-- Product Management Section -->
     <div id="product-section" style="display:none;">
         <h2>Manage Products</h2>
         <form id="add-product-form">
@@ -140,6 +140,14 @@
         <ul id="invoice-list"></ul>
     </div>
 
+    <!-- n8n Chat Bot -->
+    <script type="module">
+        import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
+        createChat({
+            webhookUrl: 'https://jafor.app.n8n.cloud/webhook/39ee8740-0437-4fcb-a2a4-fe851f183bee/chat'
+        });
+    </script>
+
     <script>
         const authSection = document.getElementById('auth-section');
         const productSection = document.getElementById('product-section');
@@ -161,7 +169,6 @@
 
         checkLogin();
 
-        // Logout
         logoutBtn.addEventListener('click', async () => {
             await fetch('/logout');
             authSection.style.display = 'block';
@@ -170,7 +177,6 @@
             logoutBtn.style.display = 'none';
         });
 
-        // Delete All Products
         deleteAllBtn.addEventListener('click', async () => {
             if (confirm('Are you sure you want to delete all products?')) {
                 await fetch('/delete_all_products', { method: 'POST' });
@@ -178,7 +184,6 @@
             }
         });
 
-        // Sign Up
         document.getElementById('signup-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('signup-username').value;
@@ -190,7 +195,6 @@
             if (response.redirected) window.location.href = response.url;
         });
 
-        // Sign In
         document.getElementById('signin-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const username = document.getElementById('signin-username').value;
@@ -202,7 +206,6 @@
             if (response.redirected) window.location.href = response.url;
         });
 
-        // Add Product with input clearing
         document.getElementById('add-product-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const nameInput = document.getElementById('product-name');
@@ -218,7 +221,6 @@
                 body: new URLSearchParams({ name, quantity, price })
             });
 
-            // Clear input fields
             nameInput.value = '';
             quantityInput.value = '';
             priceInput.value = '';
